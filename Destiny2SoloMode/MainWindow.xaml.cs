@@ -31,7 +31,10 @@ namespace Destiny2SoloMode
     {
         private FirewallManager firewallManager = new FirewallManager();
         private static RichTextBox OutputConsole;
-        private static readonly string defaultPorts = "1935,3097-3098,3478-3480";
+        private static bool IsRunning = false;
+        private static bool PortsUpdated = false;
+        private static readonly string[] defaultLocalPorts = new string[]{"", ""}; //"1935,3097-3098,3478-3480"
+        private static readonly string[] defaultRemotePorts = new string[]{"27000-27100", "27000-27100" };
 
         public MainWindow()
         {
@@ -91,25 +94,36 @@ namespace Destiny2SoloMode
             {
                 tbTCPPorts.Text = Settings.Default.TCPPorts;
             } else {
-                tbTCPPorts.Text = defaultPorts;
+                tbTCPPorts.Text = defaultLocalPorts[0];
             }
 
             if (!String.IsNullOrWhiteSpace(Settings.Default.UDPPorts))
             {
                 tbUDPPorts.Text = Settings.Default.UDPPorts;
             } else {
-                tbUDPPorts.Text = defaultPorts;
+                tbUDPPorts.Text = defaultLocalPorts[1];
             }
+
+            if(!String.IsNullOrWhiteSpace(Settings.Default.TCPRemote))
+            {
+                tbTCPPortsRemote.Text = Settings.Default.TCPRemote;
+            } else {
+                tbUDPPorts.Text = defaultRemotePorts[0];
+            }
+
+            if(!String.IsNullOrWhiteSpace(Settings.Default.UDPRemote))
+            {
+                tbUDPPortsRemote.Text = Settings.Default.UDPRemote;
+            } else {
+                tbUDPPorts.Text = defaultRemotePorts[1];
+            }
+
+            IsRunning = true;
         }
 
         private void bClearOutput_Click(object sender, RoutedEventArgs e)
         {
             ClearOutputConsole();
-        }
-
-        private void bOpenFirewallSettings_Click(object sender, RoutedEventArgs e)
-        {
-            Process.Start("wf.msc");
         }
 
         private void HighlightOutputText(string text, Color highlightColor, bool bold, bool italic)
@@ -190,7 +204,7 @@ namespace Destiny2SoloMode
                             gDefaultRules.Background = Brushes.DarkRed;
                     }
                 } else if(grid == gCustomRules) {
-                    if(gFirewallEnabled.Background == Brushes.Green && gDefaultRules.Background == Brushes.Green)
+                    if(gFirewallEnabled.Background == Brushes.Green)
                     {
                         if (gCustomRules.Background == Brushes.Gray)
                             gCustomRules.Background = Brushes.DarkGray;
@@ -307,17 +321,27 @@ namespace Destiny2SoloMode
                 // Custom Rules Button
                 if(grid == gCustomRules)
                 {
-                    if(gFirewallEnabled.Background == Brushes.Green && gDefaultRules.Background == Brushes.Green)
+                    if (gFirewallEnabled.Background == Brushes.Green)
                     {
-                        if(firewallManager.DoesCustomRulesExist())
+                        if (firewallManager.DoesCustomRulesExist())
                         {
                             firewallManager.RemoveCustomRules();
                             gCustomRules.Background = Brushes.Red;
+                            gToggleMatchmaking.Background = Brushes.Gray;
                             tbCustomRules.Text = "Add Custom Rules";
                         } else {
-                            firewallManager.AddCustomRules(tbTCPPorts.Text, tbUDPPorts.Text); // TODO: Add some checks here, !String.IsNullOrWhitespace etc
+                            // TODO: Verify ports before doing this!
+                            string[] localPorts = new string[]{tbTCPPorts.Text, tbUDPPorts.Text};
+                            string[] remotePorts = new string[]{tbTCPPortsRemote.Text, tbUDPPortsRemote.Text};
+
+                            firewallManager.AddCustomRules(localPorts, remotePorts);
+                            PortsUpdated = false;
                             gCustomRules.Background = Brushes.Green;
                             tbCustomRules.Text = "Custom Rules Added";
+                            if(gDefaultRules.Background == Brushes.Green)
+                            {
+                                gToggleMatchmaking.Background = Brushes.Orange;
+                            }
                         }
                     } else {
                         //AddMessageToOutputConsole("To operate this button, disable the default rules first you must.", Brushes.Azure);
@@ -502,16 +526,6 @@ namespace Destiny2SoloMode
             #endregion
         }
 
-        private void bResetTCPPorts_Click(object sender, RoutedEventArgs e)
-        {
-            tbTCPPorts.Text = defaultPorts;
-        }
-
-        private void bResetUDPPorts_Click(object sender, RoutedEventArgs e)
-        {
-            tbUDPPorts.Text = defaultPorts;
-        }
-
         private void MetroWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             if(tbTCPPorts.Text != Settings.Default.TCPPorts)
@@ -523,6 +537,232 @@ namespace Destiny2SoloMode
             {
                 Settings.Default.UDPPorts = tbUDPPorts.Text;
                 Settings.Default.Save();
+            }
+        }
+
+        private void TabItem_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if(PortsUpdated && firewallManager.DoesCustomRulesExist())
+            {
+                if(MessageBox.Show("Ports have been changed but not yet updated. Would you like to update them now? You can do this manually later by re-applying the custom rules.", "Warning", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                {
+                    string[] localPorts = new string[]{tbTCPPorts.Text, tbUDPPorts.Text};
+                    string[] remotePorts = new string[]{tbTCPPortsRemote.Text, tbUDPPortsRemote.Text};
+
+                    firewallManager.AddCustomRules(localPorts, remotePorts);
+                    PortsUpdated = false;
+                }
+            }
+        }
+
+        private static bool ArePortsValid(string portString)
+        {
+            if(String.IsNullOrWhiteSpace(portString))
+            {
+                return false;
+            }
+
+            Regex rx = new Regex(@"[0-9\-0-9]+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            MatchCollection rxMatches = rx.Matches(portString);
+            //Console.WriteLine(rxMatches. .ToString());
+
+            if(rxMatches.Count > 0)
+            {
+                foreach(Match match in rxMatches)
+                {
+                    if(match.Value.Contains("-"))
+                    {
+                        // Port Range
+                        string[] values = match.Value.Split('-');
+                        foreach(string value in values)
+                        {
+                            try
+                            {
+                                if(Convert.ToInt32(value) < 65536)
+                                {
+                                    //Continue
+                                } else {
+                                    return false;
+                                }
+                            } catch (OverflowException) {
+                                return false;
+                            }
+                        }
+                    } else {
+                        // Single Port
+                        if (Convert.ToInt32(match.Value) < 65536)
+                        {
+                            //Continue
+                        } else {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            } else {
+                return false;
+            }
+
+        }
+
+        #region Button Managers
+        private void ToolButton_Manager(object sender, RoutedEventArgs args)
+        {
+            // Advanced Firewall Policies
+            if(sender == bOpenFirewallSettings)
+            {
+                Process.Start("wf.msc");
+            }
+            // Resource Monitor
+            if(sender == bOpenResMon)
+            {
+                Process.Start("resmon.exe");
+            }
+            // Reset Settings
+            if(sender == bResetSettings)
+            {
+                if(MessageBox.Show("Warning!\n\nThis will reset the program's settings to their default values. Are you sure you want to proceed?", "Warning", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                {
+                    Settings.Default.Reset();
+                    Settings.Default.Save();
+                    if(firewallManager.AreCustomRulesEnabled())
+                    {
+                        firewallManager.RemoveCustomRules();
+                    }
+                    if(firewallManager.DoesDefaultRulesExist())
+                    {
+                        firewallManager.ToggleDefaultRules(true);
+                    }
+                }
+            }
+            // Firewall Defaults
+            if(sender == bRestoreLocals)
+            {
+                if(MessageBox.Show("This will restore your firewall policies to their default values. This is unharmful, some applications may ask for network access after doing this.\n\nDo you want to proceed?", "Warning", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                {
+                    firewallManager.RestoreLocalFirewallDefaults();
+                }
+            }
+        }
+        private void ResetButton_Manager(object sender, RoutedEventArgs args)
+        {
+            bool somethingChanged = false;
+            // Local Ports, TCP & UDP
+            if(sender == bResetTCPPorts)
+            {
+                if(bResetTCPPorts.Content.ToString() == "Reset")
+                {
+                    tbTCPPorts.Text = defaultLocalPorts[0];
+                    Settings.Default.TCPPorts = tbTCPPorts.Text;
+                    somethingChanged = true;
+                    PortsUpdated = true;
+                } else if(bResetTCPPorts.Content.ToString() == "Save") {
+                    // TODO: Verify ports!
+                    Settings.Default.TCPPorts = tbTCPPorts.Text;
+                    bResetTCPPorts.Content = "Reset";
+                    somethingChanged = true;
+                    PortsUpdated = true;
+                }
+            }
+            if(sender == bResetUDPPorts)
+            {
+                if (bResetUDPPorts.Content.ToString() == "Reset")
+                {
+                    tbUDPPorts.Text = defaultLocalPorts[1];
+                    Settings.Default.UDPPorts = tbUDPPorts.Text;
+                    somethingChanged = true;
+                    PortsUpdated = true;
+                } else if (bResetUDPPorts.Content.ToString() == "Save") {
+                    // TODO: Verify ports!
+                    Settings.Default.UDPPorts = tbUDPPorts.Text;
+                    bResetUDPPorts.Content = "Reset";
+                    somethingChanged = true;
+                    PortsUpdated = true;
+                }
+            }
+            // Remote Ports, TCP & UDP
+            if(sender == bResetTCPRemote)
+            {
+                if (bResetTCPRemote.Content.ToString() == "Reset")
+                {
+                    tbTCPPortsRemote.Text = defaultRemotePorts[0];
+                    Settings.Default.TCPRemote = tbTCPPortsRemote.Text;
+                    somethingChanged = true;
+                    PortsUpdated = true;
+                } else if (bResetTCPRemote.Content.ToString() == "Save") {
+                    // TODO: Verify ports!
+                    Settings.Default.TCPRemote = tbTCPPortsRemote.Text;
+                    bResetTCPRemote.Content = "Reset";
+                    somethingChanged = true;
+                    PortsUpdated = true;
+                }
+            }
+            if(sender == bResetUDPRemote)
+            {
+                if (bResetUDPRemote.Content.ToString() == "Reset")
+                {
+                    tbUDPPortsRemote.Text = defaultRemotePorts[1];
+                    Settings.Default.UDPRemote = tbUDPPortsRemote.Text;
+                    somethingChanged = true;
+                    PortsUpdated = true;
+                } else if (bResetUDPRemote.Content.ToString() == "Save") {
+                    // TODO: Verify ports!
+                    Settings.Default.UDPRemote = tbUDPPortsRemote.Text;
+                    bResetUDPRemote.Content = "Reset";
+                    somethingChanged = true;
+                    PortsUpdated = true;
+                }
+            }
+
+            if(somethingChanged)
+            {
+                Settings.Default.Save();
+            }
+        }
+        #endregion
+
+        private void TextFields_Changed(object sender, TextChangedEventArgs e)
+        {
+            if (IsRunning)
+            {
+                // Local Ports
+                if (sender == tbTCPPorts)
+                {
+                    if (tbTCPPorts.Text != Settings.Default.TCPPorts)
+                    {
+                        bResetTCPPorts.Content = "Save";
+                    } else {
+                        bResetTCPPorts.Content = "Reset";
+                    }
+                }
+                if (sender == tbUDPPorts)
+                {
+                    if (tbUDPPorts.Text != Settings.Default.UDPPorts)
+                    {
+                        bResetUDPPorts.Content = "Save";
+                    } else {
+                        bResetUDPPorts.Content = "Reset";
+                    }
+                }
+                // Remote Ports
+                if (sender == tbTCPPortsRemote)
+                {
+                    if (tbTCPPortsRemote.Text != Settings.Default.TCPRemote)
+                    {
+                        bResetTCPRemote.Content = "Save";
+                    } else {
+                        bResetTCPRemote.Content = "Reset";
+                    }
+                }
+                if (sender == tbUDPPortsRemote)
+                {
+                    if (tbUDPPortsRemote.Text != Settings.Default.UDPRemote)
+                    {
+                        bResetUDPRemote.Content = "Save";
+                    } else {
+                        bResetUDPRemote.Content = "Reset";
+                    }
+                }
             }
         }
     }

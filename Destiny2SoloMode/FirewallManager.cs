@@ -201,6 +201,13 @@ namespace Destiny2SoloMode
             });
         }
 
+        public void RestoreLocalFirewallDefaults()
+        {
+            INetFwPolicy2 firewallPolicy = GetFirewallPolicy();
+
+            firewallPolicy.RestoreLocalFirewallDefaults();
+        }
+
         public void RemoveCustomRules()
         {
             INetFwPolicy2 firewallPolicy = (INetFwPolicy2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwPolicy2"));
@@ -226,6 +233,32 @@ namespace Destiny2SoloMode
             //((MainWindow)System.Windows.Application.Current.MainWindow).gToggleMatchmaking.Background = Brushes.Red;
         }
 
+        public void AddCustomRules(string[] localPorts, string[] remotePorts)
+        {
+            // Clear Any Existing Rules
+            RemoveCustomRules();
+
+            INetFwPolicy2 firewallPolicy = (INetFwPolicy2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwPolicy2"));
+
+            foreach (string ruleName in customRuleNames)
+            {
+                INetFwRule firewallRule = (INetFwRule)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FWRule"));
+
+                firewallRule.Name = ruleName;
+                firewallRule.Description = "Destiny 2 Solo Mode - Attempts to Prevent Matchmaking";
+                firewallRule.Action = NET_FW_ACTION_.NET_FW_ACTION_BLOCK;
+                firewallRule.Direction = (ruleName.Contains("Inbound")) ? NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_IN : NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_OUT;
+                firewallRule.InterfaceTypes = "All";
+                firewallRule.Protocol = (ruleName.Contains("TCP")) ? 6 : 17; // 6 = TCP, 17 = UDP
+                firewallRule.LocalPorts = (ruleName.Contains("TCP")) ? localPorts[0] : localPorts[1];
+                firewallRule.RemotePorts = (ruleName.Contains("TCP")) ? remotePorts[0] : remotePorts[1];
+                firewallRule.Enabled = false;
+
+                firewallPolicy.Rules.Add(firewallRule);
+                SendMessageToOutputConsole($"Added Custom Rule: {ruleName}", Brushes.Azure);
+            }
+        }
+        /*
         public void AddCustomRules(string tcpPorts, string udpPorts)
         {
             // Clear Any Existing Rules
@@ -250,6 +283,7 @@ namespace Destiny2SoloMode
                 SendMessageToOutputConsole($"Added Custom Rule: {ruleName}", Brushes.Azure);
             }
         }
+        */
 
         public bool? ToggleCustomRules(bool newState)
         {

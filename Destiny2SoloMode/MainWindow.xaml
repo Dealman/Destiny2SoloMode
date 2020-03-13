@@ -7,13 +7,13 @@
         xmlns:fa5="http://schemas.fontawesome.com/icons/"
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         mc:Ignorable="d"
-        Title="Destiny 2 PC - Solo Mode" Height="450" MinHeight="400" Width="800" MinWidth="560" TitleCaps="False" Loaded="MetroWindow_Loaded" ContentRendered="MetroWindow_ContentRendered" Closing="MetroWindow_Closing" WindowStartupLocation="CenterScreen">
+        Title="Destiny 2 PC - Solo Mode" Height="545" MinHeight="545" Width="800" MinWidth="560" TitleCaps="False" Loaded="MetroWindow_Loaded" ContentRendered="MetroWindow_ContentRendered" Closing="MetroWindow_Closing" WindowStartupLocation="CenterScreen">
     <Grid Background="#FF454545">
         <TabControl Margin="10">
-            <TabItem Header="Main">
+            <TabItem Header="Main" GotFocus="TabItem_GotFocus">
                 <Grid Background="#FF404040">
                     <Label Content="Output Console" Margin="10,115,10,0" VerticalAlignment="Top" HorizontalContentAlignment="Center"/>
-                    <RichTextBox x:Name="rtbOutputConsole" Margin="10,146,10,42" IsReadOnly="True" TextChanged="rtbOutputConsole_TextChanged">
+                    <RichTextBox x:Name="rtbOutputConsole" Margin="10,146,10,42" IsReadOnly="True" TextChanged="rtbOutputConsole_TextChanged" AutoWordSelection="False" Focusable="False">
                         <FlowDocument/>
                     </RichTextBox>
                     <Grid x:Name="gToggleMatchmaking" HorizontalAlignment="Left" Height="100" Margin="412,10,0,0" VerticalAlignment="Top" Width="100" Background="Gray" ToolTip="Once the criteria are met - you'll be able to toggle the custom rules here." MouseEnter="GridButton_MouseEnter" MouseLeave="GridButton_MouseLeave" MouseLeftButtonUp="GridButton_MouseLeftButtonUp">
@@ -40,13 +40,34 @@
             </TabItem>
             <TabItem Header="Settings">
                 <Grid Background="#FF404040">
-                    <TextBox x:Name="tbTCPPorts" Margin="10,41,90,0" TextWrapping="Wrap" Text="1935,3097-3098,3478-3480" VerticalAlignment="Top"/>
-                    <Label Content="TCP Ports to Block" Margin="10,10,10,0" VerticalAlignment="Top"/>
-                    <Label Content="UDP Ports to Block" Margin="10,73,10,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="tbUDPPorts" Margin="10,104,90,0" TextWrapping="Wrap" Text="1935,3097-3098,3478-3480" VerticalAlignment="Top"/>
-                    <Button x:Name="bResetTCPPorts" Content="Reset" HorizontalAlignment="Right" Margin="0,41,10,0" VerticalAlignment="Top" Controls:ControlsHelper.ContentCharacterCasing="Normal" Click="bResetTCPPorts_Click" MinWidth="75" MinHeight="26"/>
-                    <Button x:Name="bResetUDPPorts" Content="Reset" Margin="0,104,10,0" VerticalAlignment="Top" Controls:ControlsHelper.ContentCharacterCasing="Normal" Click="bResetUDPPorts_Click" HorizontalAlignment="Right" MinWidth="75" MinHeight="26"/>
-                    <Button x:Name="bOpenFirewallSettings" Content="Open Advanced Firewall Settings" HorizontalAlignment="Left" Margin="10,135,0,0" VerticalAlignment="Top" Click="bOpenFirewallSettings_Click"/>
+                    <GroupBox Header="Local Ports" Margin="10,10,10,0" VerticalAlignment="Top" Controls:ControlsHelper.ContentCharacterCasing="Normal">
+                        <Grid Margin="0">
+                            <Label Content="TCP Ports to Block" Margin="10,0" VerticalAlignment="Top"/>
+                            <TextBox x:Name="tbTCPPorts" Margin="10,31,90,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" TextChanged="TextFields_Changed"/>
+                            <Button x:Name="bResetTCPPorts" Content="Reset" HorizontalAlignment="Right" Margin="0,31,10,0" VerticalAlignment="Top" Controls:ControlsHelper.ContentCharacterCasing="Normal" Click="ResetButton_Manager" MinWidth="75" MinHeight="26"/>
+                            <Label Content="UDP Ports to Block" Margin="10,62,10,0" VerticalAlignment="Top"/>
+                            <TextBox x:Name="tbUDPPorts" Margin="10,93,90,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" TextChanged="TextFields_Changed"/>
+                            <Button x:Name="bResetUDPPorts" Content="Reset" Margin="0,92,10,0" VerticalAlignment="Top" Controls:ControlsHelper.ContentCharacterCasing="Normal" Click="ResetButton_Manager" HorizontalAlignment="Right" MinWidth="75" MinHeight="26"/>
+                        </Grid>
+                    </GroupBox>
+                    <GroupBox Header="Remote Ports" Margin="10,169,10,0" Controls:ControlsHelper.ContentCharacterCasing="Normal" VerticalAlignment="Top">
+                        <Grid Margin="0">
+                            <Label Content="TCP Ports to Block" Margin="10,0" VerticalAlignment="Top"/>
+                            <TextBox x:Name="tbTCPPortsRemote" Margin="10,31,90,0" TextWrapping="Wrap" Text="27000-27100" VerticalAlignment="Top" TextChanged="TextFields_Changed"/>
+                            <Label Content="UDP Ports to Block" Margin="10,63,10,0" VerticalAlignment="Top"/>
+                            <TextBox x:Name="tbUDPPortsRemote" Margin="10,94,90,0" TextWrapping="Wrap" Text="27000-27100" VerticalAlignment="Top" TextChanged="TextFields_Changed"/>
+                            <Button x:Name="bResetTCPRemote" Content="Reset" HorizontalAlignment="Right" Margin="0,31,10,0" VerticalAlignment="Top" Controls:ControlsHelper.ContentCharacterCasing="Normal" MinWidth="75" MinHeight="26" Click="ResetButton_Manager"/>
+                            <Button x:Name="bResetUDPRemote" Content="Reset" HorizontalAlignment="Right" Margin="0,94,10,0" VerticalAlignment="Top" Controls:ControlsHelper.ContentCharacterCasing="Normal" MinWidth="75" MinHeight="26" Click="ResetButton_Manager"/>
+                        </Grid>
+                    </GroupBox>
+                    <GroupBox Header="Tools" Margin="10,330,10,30" Controls:ControlsHelper.ContentCharacterCasing="Normal" VerticalAlignment="Top">
+                        <Grid Margin="0">
+                            <Button x:Name="bOpenFirewallSettings" Content="Open Firewall Policies" HorizontalAlignment="Left" Margin="10,10,0,10" VerticalAlignment="Center" Click="ToolButton_Manager" Controls:ControlsHelper.ContentCharacterCasing="Normal"/>
+                            <Button x:Name="bOpenResMon" Content="Open Resource Monitor" HorizontalAlignment="Left" Margin="129,10,0,10" VerticalAlignment="Center" Controls:ControlsHelper.ContentCharacterCasing="Normal" Click="ToolButton_Manager"/>
+                            <Button x:Name="bRestoreLocals" Content="Restore Local Firewall Defaults" HorizontalAlignment="Left" Margin="258,10,0,10" VerticalAlignment="Center" Controls:ControlsHelper.ContentCharacterCasing="Normal" Click="ToolButton_Manager"/>
+                            <Button x:Name="bResetSettings" Content="Reset Settings" HorizontalAlignment="Right" Margin="0,10,10,10" VerticalAlignment="Center" Controls:ControlsHelper.ContentCharacterCasing="Normal" Click="ToolButton_Manager" Foreground="Red"/>
+                        </Grid>
+                    </GroupBox>
                 </Grid>
             </TabItem>
             <TabItem Header="About">
@@ -54,25 +75,53 @@
                     <RichTextBox Margin="10">
                         <FlowDocument>
                             <Paragraph TextAlignment="Center">
-                                <Run Text="Destiny 2 PC - Solo Mode"/>
+                                <Run FontWeight="Bold" Text="Destiny 2 PC - Solo Mode"/>
                                 <LineBreak/>
-                                <Run Text="Developed by Dealman(/u/TheProvocator)"/>
+                                <Run FontStyle="Italic" Text="Developed by Dealman(/u/TheProvocator)"/>
                                 <LineBreak/>
-                                <Run Text="V1.0.0"/>
-                                <LineBreak/>
-                                <Run/>
-                                <LineBreak/>
-                                <Run Text="Disclaimer"/>
+                                <Run FontStyle="Italic" Text="V1.2.1"/>
                                 <LineBreak/>
                                 <Run/>
                                 <LineBreak/>
-                                <Run Text="The intention of this program is non-malicious. Its main purpose was to let myself use the EDZ Obelisk more reliably instead of having to go back and forth for 2 hours straight hoping that it MIGHT work."/>
+                                <Run FontWeight="Bold" Text="Disclaimer"/>
+                                <LineBreak/>
+                                <Run/>
+                                <LineBreak/>
+                                <Run Text="The intent of this program is non-malicious. Its main purpose was to let myself use the EDZ Obelisk more reliably instead of having to go back and forth for 2 hours straight hoping that it MIGHT work."/>
                             </Paragraph>
                             <Paragraph TextAlignment="Center">
                                 <Run Text="It's very likely this might be against the Destiny 2 Terms of Service. So if you decide to use this tool - you acknowledge that I will not be held responsible should Bungie go apeshit about people wanting to try Strikes solo at their own pace instead of trying to keep up with sweaty tryhard speedrunning kids."/>
                             </Paragraph>
                             <Paragraph TextAlignment="Center">
-                                <Run Text="In other words, if they ban you for using this tool - it's on you. I wholeheartedly hope they do not as a solo mode for Strikes is sorely needed."/>
+                                <Run FontWeight="Bold" Text="Changelog for Version 1.2.1"/>
+                                <LineBreak/>
+                                <Run/>
+                                <LineBreak/>
+                                <Run Text="Bungie has made some changes to their matchmaking with the release of the new season. My assumption is they're now relying on Steamworks to do the matchmaking for them"/>
+                                <Run FontStyle="Italic" Text="(if they weren't already?)"/>
+                                <Run Text=". Some users have reported a new set of port restrictions that seem to work, those are now default in this version. These changes may result in this being "/>
+                                <Run FontWeight="Bold" Text="a lot"/>
+                                <Run Text=" less stable now."/>
+                                <LineBreak/>
+                                <Run/>
+                                <LineBreak/>
+                                <Run FontWeight="Bold" Text="[Added]:"/>
+                                <Run Text=" Button to restore local firewall defaults."/>
+                                <LineBreak/>
+                                <Run FontWeight="Bold" Text="[Added]:"/>
+                                <Run Text=" Button to reset settings in case something gets broken."/>
+                                <LineBreak/>
+                                <Run FontWeight="Bold" Text="[Added]:"/>
+                                <Run Text=" Ability to add custom remote ports."/>
+                                <LineBreak/>
+                                <Run FontWeight="Bold" Text="[Changed]:"/>
+                                <Run Text=" Ports have been updated to reflect some networking changes made by Bungie."/>
+                                <LineBreak/>
+                                <Run FontWeight="Bold" Text="[Fixed]:"/>
+                                <Run Text=" Unable to remove custom rules if default rules were re-enabled."/>
+                                <LineBreak/>
+                                <Run FontWeight="Bold" Text="[Fixed]:"/>
+                                <Run Text=" Some bugs causing text in the output console to get highlighted."/>
                             </Paragraph>
                         </FlowDocument>
                     </RichTextBox>

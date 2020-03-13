@@ -8,5 +8,11 @@
     <Setting Name="UDPPorts" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
+    <Setting Name="TCPRemote" Type="System.String" Scope="User">
+      <Value Profile="(Default)">27000-27100</Value>
+    </Setting>
+    <Setting Name="UDPRemote" Type="System.String" Scope="User">
+      <Value Profile="(Default)">27000-27100</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
